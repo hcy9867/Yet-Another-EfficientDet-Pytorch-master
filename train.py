@@ -17,7 +17,7 @@ from torchvision import transforms
 from tqdm.autonotebook import tqdm
 
 from backbone import EfficientDetBackbone
-from efficientdet.dataset import CocoDataset, Resizer, Normalizer, Augmenter, collater
+from efficientdet.dataset import CocoDataset,EndoCVDataset, Resizer, Normalizer, Augmenter, collater
 from efficientdet.loss import FocalLoss
 from utils.sync_batchnorm import patch_replication_callback
 from utils.utils import replace_w_sync_bn, CustomDataParallel, get_last_weights, init_weights, boolean_string
@@ -33,8 +33,9 @@ class Params:
 
 def get_args():
     parser = argparse.ArgumentParser('Yet Another EfficientDet Pytorch: SOTA object detection network - Zylo117')
-    parser.add_argument('-p', '--project', type=str, default='coco', help='project file that contains parameters')
-    parser.add_argument('-c', '--compound_coef', type=int, default=0, help='coefficients of efficientdet')
+    #parser.add_argument('-p', '--project', type=str, default='coco', help='project file that contains parameters')
+    parser.add_argument('-p', '--project', type=str, default='EndoCV', help='project file that contains parameters')
+    parser.add_argument('-c', '--compound_coef', type=int, default=3, help='coefficients of efficientdet') #输入尺寸
     parser.add_argument('-n', '--num_workers', type=int, default=12, help='num_workers of dataloader')
     parser.add_argument('--batch_size', type=int, default=12, help='The number of images per batch among all devices')
     parser.add_argument('--head_only', type=boolean_string, default=False,
@@ -51,11 +52,11 @@ def get_args():
                         help='Early stopping\'s parameter: minimum change loss to qualify as an improvement')
     parser.add_argument('--es_patience', type=int, default=0,
                         help='Early stopping\'s parameter: number of epochs with no improvement after which training will be stopped. Set to 0 to disable this technique.')
-    parser.add_argument('--data_path', type=str, default='datasets/', help='the root folder of dataset')
-    parser.add_argument('--log_path', type=str, default='logs/')
-    parser.add_argument('-w', '--load_weights', type=str, default=None,
+    parser.add_argument('--data_path', type=str, default='/home/greatbme/mydata/', help='the root folder of dataset')
+    parser.add_argument('--log_path', type=str, default='/home/endocv2021/hcy/logs/')
+    parser.add_argument('-w', '--load_weights', type=str, default='/home/endocv2021/hcy/logs/data_EndoCV2021/efficientdet-d3_33_2822.pth',
                         help='whether to load weights from a checkpoint, set None to initialize, set \'last\' to load last checkpoint')
-    parser.add_argument('--saved_path', type=str, default='logs/')
+    parser.add_argument('--saved_path', type=str, default='/home/greatbme/SATA_data/hcy/EfficientDet/logs/')
     parser.add_argument('--debug', type=boolean_string, default=False,
                         help='whether visualize the predicted boxes of training, '
                              'the output images will be in test/')
@@ -110,15 +111,27 @@ def train(opt):
                   'num_workers': opt.num_workers}
 
     input_sizes = [512, 640, 768, 896, 1024, 1280, 1280, 1536, 1536]
-    training_set = CocoDataset(root_dir=os.path.join(opt.data_path, params.project_name), set=params.train_set,
-                               transform=transforms.Compose([Normalizer(mean=params.mean, std=params.std),
-                                                             Augmenter(),
-                                                             Resizer(input_sizes[opt.compound_coef])]))
-    training_generator = DataLoader(training_set, **training_params)
+    if opt.project=='coco':
+        training_set = CocoDataset(root_dir=os.path.join(opt.data_path, params.project_name), set=params.train_set,
+                                   transform=transforms.Compose([Normalizer(mean=params.mean, std=params.std),
+                                                                 Augmenter(),
+                                                                 Resizer(input_sizes[opt.compound_coef])]))
 
-    val_set = CocoDataset(root_dir=os.path.join(opt.data_path, params.project_name), set=params.val_set,
-                          transform=transforms.Compose([Normalizer(mean=params.mean, std=params.std),
-                                                        Resizer(input_sizes[opt.compound_coef])]))
+
+        val_set = CocoDataset(root_dir=os.path.join(opt.data_path, params.project_name), set=params.val_set,
+                              transform=transforms.Compose([Normalizer(mean=params.mean, std=params.std),
+                                                            Resizer(input_sizes[opt.compound_coef])]))
+    elif opt.project=='EndoCV':
+        training_set = EndoCVDataset(root_dir=os.path.join(opt.data_path, params.project_name), set=params.train_set,
+                                   transform=transforms.Compose([Normalizer(mean=params.mean, std=params.std),
+                                                                 Augmenter(),
+                                                                 Resizer(input_sizes[opt.compound_coef])]))
+
+        val_set = EndoCVDataset(root_dir=os.path.join(opt.data_path, params.project_name), set=params.val_set,
+                              transform=transforms.Compose([Normalizer(mean=params.mean, std=params.std),
+                                                            Resizer(input_sizes[opt.compound_coef])]))
+
+    training_generator = DataLoader(training_set, **training_params)
     val_generator = DataLoader(val_set, **val_params)
 
     model = EfficientDetBackbone(num_classes=len(params.obj_list), compound_coef=opt.compound_coef,

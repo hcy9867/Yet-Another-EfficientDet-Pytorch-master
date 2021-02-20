@@ -27,7 +27,7 @@ from utils.utils import preprocess, invert_affine, postprocess, boolean_string
 ap = argparse.ArgumentParser()
 ap.add_argument('-p', '--project', type=str, default='EndoCV', help='project file that contains parameters')
 ap.add_argument('-c', '--compound_coef', type=int, default=3, help='coefficients of efficientdet')
-ap.add_argument('-w', '--weights', type=str, default='/home/endocv2021/hcy/logs/data_EndoCV2021/efficientdet-d3_33_2822.pth', help='/path/to/weights')
+ap.add_argument('-w', '--weights', type=str, default='/home/endocv2021/hcy/logs/data_EndoCV2021/efficientdet-d3_80_6723.pth', help='/path/to/weights')
 ap.add_argument('--nms_threshold', type=float, default=0.5, help='nms threshold, don\'t change it if not for testing purposes')
 ap.add_argument('--cuda', type=boolean_string, default=True)
 ap.add_argument('--device', type=int, default=0)
@@ -136,10 +136,10 @@ def _eval(coco_gt, image_ids, pred_json_path):
 
 
 if __name__ == '__main__':
-    SET_NAME = params['val_set']
-    VAL_GT = f'datasets/{params["project_name"]}/annotations/instances_{SET_NAME}.json'
-    VAL_IMGS = f'datasets/{params["project_name"]}/{SET_NAME}/'
-    MAX_IMAGES = 10000
+    SET_NAME = params['train_set']
+    VAL_GT = f'/home/greatbme/mydata/data_EndoCV2021/annotations/{SET_NAME}.json'
+    VAL_IMGS = '/home/greatbme/mydata/data_EndoCV2021/images/'
+    MAX_IMAGES = 1000
     coco_gt = COCO(VAL_GT)
     image_ids = coco_gt.getImgIds()[:MAX_IMAGES]
     
